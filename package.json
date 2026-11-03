@@ -1,0 +1,38 @@
+{
+  "name": "academiaconnect-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AcademiaConnect REST API and Socket.io server (Express 5, MongoDB, TypeScript)",
+  "type": "module",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsup src/index.ts --format esm --target node20 --clean --sourcemap",
+    "start": "node dist/index.js",
+    "seed": "tsx src/seed/index.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.3",
+    "helmet": "^8.3.0",
+    "jose": "^6.2.15",
+    "mongoose": "^8.24.8",
+    "morgan": "^1.12.1",
+    "socket.io": "^4.8.4",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^22.20.5",
+    "better-auth": "^1.7.15",
+    "tsup": "^9.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}
