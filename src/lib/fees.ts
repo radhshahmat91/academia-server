@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 
 const DAY = 86_400_000;
 
-export const docNo = (prefix: string) => `${prefix}-${new Date().getFullYear()}-${randomBytes(3).toString("hex").toUpperCase()}`;
+export const docNo = (prefix: string) => `${prefix}-${new Date().getFullYear()}-${randomBytes(4).toString("hex").toUpperCase()}`;
 export const taka = (n: number) => `৳${Math.round(n).toLocaleString("en-US")}`;
 
 export function tuitionBreakdown(fees: any, credits: number, waiverPercent: number) {
