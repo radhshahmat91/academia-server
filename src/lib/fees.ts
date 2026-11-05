@@ -30,6 +30,12 @@ export function installmentsFor(total: number, from = new Date()) {
   }));
 }
 
+/** The invoice's due date always points at the first installment that is still unpaid. */
+function syncDueDate(inv: any) {
+  const next = (inv.installments ?? []).find((i: any) => !i.paid);
+  if (next) inv.dueDate = next.dueDate;
+}
+
 /** Mutates an invoice document after a successful payment. The caller saves it. */
 export function applyPayment(inv: any, amount: number) {
   inv.paid = Math.min(inv.total, (inv.paid ?? 0) + amount);
@@ -39,6 +45,7 @@ export function applyPayment(inv: any, amount: number) {
     running += ins.amount;
     ins.paid = inv.paid >= running;
   }
+  syncDueDate(inv);
 }
 
 export function reversePayment(inv: any, amount: number) {
@@ -49,6 +56,7 @@ export function reversePayment(inv: any, amount: number) {
     running += ins.amount;
     ins.paid = inv.paid >= running;
   }
+  syncDueDate(inv);
 }
 
 /** The first installment that is not fully covered yet, with the amount still needed to clear it. */

@@ -18,12 +18,16 @@ r.get("/fees", requireAuth, async (req, res) => {
     Invoice.find({ student: me, status: { $ne: "cancelled" } }).populate("semester", "name").sort({ createdAt: -1 }).lean(),
     Payment.find({ student: me, status: { $in: ["success", "refunded"] } }).populate("invoice", "number title type").sort({ paidAt: -1 }).limit(60).lean(),
   ]);
-  const items = invoices.map((i: any) => ({
-    ...i,
-    due: i.total - i.paid,
-    overdue: i.status !== "paid" && new Date(i.dueDate) < now,
-    next: nextInstallment(i),
-  }));
+  const items = invoices.map((i: any) => {
+    const next = nextInstallment(i);
+    return {
+      ...i,
+      due: i.total - i.paid,
+      // Overdue means the next unpaid installment (or the whole bill, when it has no installments) is past its date
+      overdue: i.status !== "paid" && new Date(next?.dueDate ?? i.dueDate) < now,
+      next,
+    };
+  });
   res.json({
     invoices: items,
     payments,

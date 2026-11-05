@@ -41,14 +41,16 @@ r.get("/registration/context", requireAuth, async (req, res) => {
   const me = req.user!.id;
   const semester = await openSemester();
   if (!semester) return void res.json({ semester: null });
-  const [sections, taken, mine, invoice, user]: any[] = await Promise.all([
+  const [sections, taken, mine, invoice, user, current]: any[] = await Promise.all([
     Section.find({ semester: semester._id }).populate("course", "code title credits department category image prerequisites").lean(),
     Enrollment.find({ student: me, status: "completed" }).populate("course", "code").lean(),
     Enrollment.find({ student: me, semester: semester._id, status: "enrolled" }).lean(),
     tuitionInvoice(me, semester._id).lean(),
     User.findById(me).select("waiverPercent").lean(),
+    Enrollment.find({ student: me, status: "enrolled", semester: { $ne: semester._id } }).populate("course", "code").lean(),
   ]);
   const passed = new Set(taken.filter((t: any) => t.gradePoint > 0 && t.course).map((t: any) => t.course.code));
+  const inProgress = new Set(current.filter((t: any) => t.course).map((t: any) => t.course.code));
   const items = sections
     .filter((s: any) => s.course)
     .map((s: any) => ({
@@ -62,6 +64,7 @@ r.get("/registration/context", requireAuth, async (req, res) => {
       seatsLeft: Math.max(0, s.capacity - s.enrolled),
       missingPrereqs: (s.course.prerequisites ?? []).filter((c: string) => !passed.has(c)),
       alreadyPassed: passed.has(s.course.code),
+      inProgress: inProgress.has(s.course.code),
     }))
     .sort((a: any, b: any) => a.course.code.localeCompare(b.course.code));
   res.json({
@@ -102,8 +105,11 @@ r.post("/registration", requireAuth, async (req, res) => {
 
   const taken: any[] = (await Enrollment.find({ student: me, status: "completed" }).populate("course", "code").lean()) as any;
   const passed = new Set(taken.filter((t) => t.gradePoint > 0 && t.course).map((t) => t.course.code));
+  const inProgress: any[] = (await Enrollment.find({ student: me, status: "enrolled", semester: { $ne: semester._id } }).populate("course", "code").lean()) as any;
+  const runningNow = new Set(inProgress.filter((t) => t.course).map((t) => t.course.code));
   for (const s of sections) {
     if (passed.has(s.course.code)) throw bad(`You have already passed ${s.course.code}`);
+    if (runningNow.has(s.course.code)) throw bad(`You are taking ${s.course.code} this semester already`);
     const missing = (s.course.prerequisites ?? []).filter((c: string) => !passed.has(c));
     if (missing.length) throw bad(`${s.course.code} needs ${missing.join(" and ")} first`);
   }
