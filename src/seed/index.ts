@@ -275,7 +275,8 @@ async function main() {
     const pays: any[] = [];
     for (let i = 0; i < paidCount; i++) {
       const amount = installments[i].amount;
-      const paidAt = new Date(+installments[i].dueDate - between(0, 4) * DAY);
+      // paid a little before it was due, but never later than today
+      const paidAt = new Date(Math.min(+installments[i].dueDate - between(0, 4) * DAY, +now - between(0, 3) * DAY));
       pays.push({ invoice: inv._id, student: studentId, amount, method: pick(["wallet", "wallet", "card", "bank"]), status: "success", txnId: docNo("TXN"), receiptNo: docNo("RCT"), installmentNo: i + 1, payerRef: "Demo gateway", paidAt, createdAt: paidAt, updatedAt: paidAt });
       applyPayment(inv, amount);
     }
