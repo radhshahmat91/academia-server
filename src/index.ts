@@ -2,10 +2,11 @@ import { createServer } from "node:http";
 import mongoose from "mongoose";
 import { app } from "./app";
 import { config } from "./config";
+import { connectMongo, DatabaseError } from "./lib/mongo";
 import { initRealtime } from "./lib/realtime";
 
 async function main() {
-  await mongoose.connect(config.mongoUri, { dbName: config.dbName, serverSelectionTimeoutMS: 15_000 });
+  await connectMongo(config.mongoUri, config.dbName);
   console.log(`MongoDB connected (${config.dbName})`);
 
   const server = createServer(app);
@@ -25,6 +26,7 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("Failed to start the server", err);
+  if (err instanceof DatabaseError) console.error(`\nCould not start: the database is not reachable.\n\n${err.message}\n`);
+  else console.error("Failed to start the server", err);
   process.exit(1);
 });
