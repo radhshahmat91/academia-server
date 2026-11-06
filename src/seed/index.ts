@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import { config } from "../config";
 import { EVAL_QUESTIONS, gradeFor } from "../lib/academics";
 import { applyPayment, docNo, installmentsFor, tuitionBreakdown } from "../lib/fees";
+import { connectMongo, DatabaseError } from "../lib/mongo";
 import * as M from "../models";
 import { CHAT, CLUBS, COURSES, EVENTS, FACULTY, NEXT_SECTIONS, NOTICES, RES, ROUTES, STUDENTS, TRACKS, type CourseDef } from "./catalog";
 import { photo, video } from "./media";
@@ -51,12 +52,33 @@ const step = (s: { year: number; season: Season }, d: 1 | -1) => {
 };
 
 async function main() {
-  await mongoose.connect(config.mongoUri, { dbName: config.dbName });
+  console.log(`Connecting to MongoDB, database "${config.dbName}"...`);
+  // Mongoose normally creates its collections the moment it connects. Hold that back until the safety check below has passed,
+  // so a run that stops there has touched nothing.
+  mongoose.set("autoCreate", false);
+  mongoose.set("autoIndex", false);
+  await connectMongo(config.mongoUri, config.dbName);
   const db = mongoose.connection.getClient().db(config.dbName);
 
+  // The seed wipes its database, so first make sure that database only holds AcademiaConnect data. A cluster often hosts
+  // other projects, and pointing MONGODB_DB at one of them by mistake must never delete it.
+  const mine = new Set(["user", "account", "session", "verification", "jwks", ...Object.values(mongoose.models).map((m) => m.collection.name)]);
+  const existing = (await db.listCollections().toArray()).map((c) => c.name).filter((n) => !n.startsWith("system."));
+  const foreign = existing.filter((n) => !mine.has(n));
+  if (foreign.length && !process.argv.includes("--force")) {
+    console.error(
+      `\nStopped before changing anything: the database "${config.dbName}" holds collections that do not belong to AcademiaConnect (${foreign.slice(0, 6).join(", ")}${foreign.length > 6 ? ", ..." : ""}).\n` +
+        `The seed replaces everything in its database, so use an empty one: set MONGODB_DB to a new name such as academiaconnect in server/.env and client/.env.local.\n` +
+        `Run with --force only if you are sure this database can be wiped.\n`,
+    );
+    process.exit(1);
+  }
+  mongoose.set("autoCreate", true);
+  mongoose.set("autoIndex", true);
+
   // Start from a clean slate. BetterAuth's signing keys (jwks) are kept so open sessions stay valid.
-  for (const c of await db.listCollections().toArray()) {
-    if (c.name !== "jwks" && !c.name.startsWith("system.")) await db.collection(c.name).drop().catch(() => {});
+  for (const name of existing) {
+    if (name !== "jwks") await db.collection(name).drop().catch(() => {});
   }
   await Promise.all(Object.values(mongoose.models).filter((m) => m.modelName !== "User").map((m) => m.syncIndexes()));
 
@@ -429,6 +451,7 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error(e);
+  if (e instanceof DatabaseError) console.error(`\nThe seed could not reach the database.\n\n${e.message}\n`);
+  else console.error(e);
   process.exit(1);
 });
