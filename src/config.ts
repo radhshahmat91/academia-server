@@ -1,8 +1,7 @@
-try {
-  process.loadEnvFile();
-} catch {
-  // no .env file: rely on real environment variables (Render, Docker, CI)
-}
+import dotenv from "dotenv";
+
+// Reads .env when there is one. Real environment variables (Render, Docker, CI) always win. Works on every Node 20.
+dotenv.config({ quiet: true });
 
 const trim = (u: string) => u.replace(/\/+$/, "");
 const list = (v?: string) =>
