@@ -1,6 +1,6 @@
 # AcademiaConnect Server
 
-REST API and real-time layer for [AcademiaConnect](../client/README.md), a full-stack university platform.
+REST API and real-time layer for **AcademiaConnect**, a full-stack university platform. The website itself (Next.js, BetterAuth) lives in the companion `academiaconnect-client` repository.
 
 - **Runtime:** Node.js 20.12+ · **Framework:** Express 5 · **Language:** TypeScript
 - **Database:** MongoDB with Mongoose · **Real-time:** Socket.io
@@ -35,7 +35,7 @@ The API fetches BetterAuth's public keys from the client to verify tokens. If th
 
 ### The seed script
 
-`npm run seed` fills the database with demo data: 25 students, 41 courses with 100 video lectures, sections, 11 clubs, events, notices, 7 semesters with grades, invoices and payments, 8 bus routes and chat history. It also creates the demo accounts (see the client README).
+`npm run seed` fills the database with demo data: 25 students, 41 courses with 100 video lectures, sections, 11 clubs, events, notices, 7 semesters with grades, invoices and payments, 8 bus routes and chat history. It also creates the demo accounts (see the client repository's README).
 
 - It **drops every collection except BetterAuth's signing keys (`jwks`)** and starts over. Never point it at a database that holds real data.
 - It refuses to run when `NODE_ENV=production` unless you add `--force`, so a production database is not wiped by accident.
