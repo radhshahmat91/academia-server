@@ -62,7 +62,7 @@ export function explainMongoError(err: unknown, uri: string | undefined, envFile
       `Try these in order:`,
       `  1. Switch to another network (a phone hotspot is a quick test) or turn off your VPN.`,
       `  2. Set your computer's DNS servers to 1.1.1.1 and 8.8.8.8. On Windows: Settings, Network and internet, your connection, DNS server assignment.`,
-      `  3. In Atlas choose Connect, Drivers and copy the older "standard" connection string that starts with mongodb:// (not mongodb+srv://) into ${where}.`,
+      `  3. In Atlas choose Connect, Drivers, pick Node.js and the version "2.2.12 or later", and copy the longer address that starts with mongodb:// (not mongodb+srv://) into ${where}.`,
       `  4. Check in Atlas that the cluster still exists and is not paused.`,
     ].join("\n");
   }
