@@ -2,17 +2,24 @@
 
 REST API and real-time layer for **AcademiaConnect**, a full-stack university platform. The website itself (Next.js, BetterAuth) lives in the companion `academiaconnect-client` repository.
 
-- **Runtime:** Node.js 20.12+ · **Framework:** Express 5 · **Language:** TypeScript
+- **Runtime:** Node.js 20.9+ · **Framework:** Express 5 · **Language:** TypeScript
 - **Database:** MongoDB with Mongoose · **Real-time:** Socket.io
 - **Auth:** verifies the JWTs issued by BetterAuth in the Next.js client against its JWKS endpoint (`jose`)
 - **Hardening:** Helmet security headers, CORS allow-list, a rate limit of 600 requests a minute per IP on `/api`, zod request validation and one consistent JSON error format
 
 ## Getting started
 
+You need Node.js 20.9 or newer (`node -v`) and a MongoDB: a free [Atlas](https://www.mongodb.com/atlas) cluster or one on your computer.
+
 ```bash
 cd server
 npm install
-cp .env.example .env     # edit if your MongoDB or client URL differ
+cp .env.example .env     # Windows PowerShell: Copy-Item .env.example .env
+```
+
+Open `.env` and set two things. `MONGODB_URI` is your Atlas string (*Connect, Drivers*, it starts with `mongodb+srv://`) or `mongodb://127.0.0.1:27017` for a MongoDB on your computer. `MONGODB_DB` is a database name of your own, for example `academiaconnect`. The website's `.env.local` needs the **same two values**. Then:
+
+```bash
 npm run seed             # demo data: students, courses, fees, chat history
 npm run dev              # http://localhost:5000
 ```
@@ -27,7 +34,8 @@ The API fetches BetterAuth's public keys from the client to verify tokens. If th
 |---|---|
 | `PORT` | HTTP port. Render sets it for you. Default `5000`. |
 | `NODE_ENV` | `development` or `production`. |
-| `MONGODB_URI`, `MONGODB_DB` | The same database the client uses for BetterAuth. |
+| `MONGODB_URI`, `MONGODB_DB` | The same database the client uses for BetterAuth. Atlas (`mongodb+srv://...`) or a local MongoDB. |
+| `DNS_SERVERS` | Optional. Only for Atlas addresses: the DNS servers to fall back on when this computer's own DNS cannot look the address up. Default `1.1.1.1,8.8.8.8`. Write `system` to turn the fallback off. |
 | `CLIENT_URL` | Allowed browser origins, comma separated (your Vercel URL). Used for CORS and Socket.io. |
 | `AUTH_URL` | Public URL of the Next.js client. The API reads `AUTH_URL/api/auth/jwks` to verify tokens. Defaults to the first `CLIENT_URL`. |
 | `AUTH_JWKS_URL` | Optional override of the JWKS endpoint. |
@@ -38,8 +46,22 @@ The API fetches BetterAuth's public keys from the client to verify tokens. If th
 `npm run seed` fills the database with demo data: 25 students, 41 courses with 100 video lectures, sections, 11 clubs, events, notices, 7 semesters with grades, invoices and payments, 8 bus routes and chat history. It also creates the demo accounts (see the client repository's README).
 
 - It **drops every collection except BetterAuth's signing keys (`jwks`)** and starts over. Never point it at a database that holds real data.
+- Before touching anything it checks the database. If it holds collections that do not belong to AcademiaConnect (another project in the same Atlas cluster, for example) it stops and tells you to pick another `MONGODB_DB`. `npm run seed -- --force` skips that check.
 - It refuses to run when `NODE_ENV=production` unless you add `--force`, so a production database is not wiped by accident.
-- It only needs `MONGODB_URI` and `MONGODB_DB`. To seed Atlas from your own computer: `MONGODB_URI="mongodb+srv://..." npm run seed`.
+- It reads `MONGODB_URI` and `MONGODB_DB` from `.env`, so seeding Atlas from your own computer only needs the Atlas string in that file. For a single run from the shell instead: `MONGODB_URI="mongodb+srv://..." npm run seed` (bash) or `$env:MONGODB_URI="mongodb+srv://..."; npm run seed` (PowerShell).
+
+### If the database does not connect
+
+The server and the seed print a short explanation and stop, instead of a long stack trace. The most common ones:
+
+| What you see | What to do |
+|---|---|
+| `querySrv ECONNREFUSED`, or "could not look up the database address" | This computer's DNS cannot answer the lookup that an Atlas `mongodb+srv://` address needs. It is common on Windows, with some VPNs and some routers, and it is not a problem in the app. The server already retries with Cloudflare and Google DNS by itself. If it still fails: turn off a VPN or try a phone hotspot; set the computer's DNS servers to `1.1.1.1` and `8.8.8.8`; or in Atlas choose *Connect, Drivers*, pick Node.js and version "2.2.12 or later" and use the longer `mongodb://` address it shows. |
+| "rejected the user name or password" | Check the database user under *Database Access* in Atlas. Write symbols in the password as `%` codes (`@` becomes `%40`). |
+| "Atlas did not answer" | Under *Network Access* in Atlas add your current IP address (or `0.0.0.0/0` while developing) and check that the cluster is not paused. |
+| "No MongoDB is running on this computer" | Start MongoDB, or put an Atlas string in `.env`. |
+| "still has the example text" | `MONGODB_URI` still holds the placeholder from `.env.example`. |
+| "Stopped before changing anything" (seed) | The database holds another project's data. Use a new `MONGODB_DB`, in `server/.env` and in the client's `.env.local`. |
 
 ## How authentication works
 
@@ -135,7 +157,8 @@ src/
   models.ts         Mongoose schemas
   routes/           catalog, me, academics, finance, chat, admin
   lib/              fees, academics (grades), evaluations, transport, chat,
-                    realtime (Socket.io), emit, notify, http (errors, paging)
+                    realtime (Socket.io), emit, notify, http (errors, paging),
+                    mongo (connection, DNS fallback, plain-language errors)
   seed/             demo data and the seed script
 render.yaml         Render blueprint
 ```
