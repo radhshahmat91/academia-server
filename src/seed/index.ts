@@ -299,7 +299,7 @@ async function main() {
       const amount = installments[i].amount;
       // paid a little before it was due, but never later than today
       const paidAt = new Date(Math.min(+installments[i].dueDate - between(0, 4) * DAY, +now - between(0, 3) * DAY));
-      pays.push({ invoice: inv._id, student: studentId, amount, method: pick(["wallet", "wallet", "card", "bank"]), status: "success", txnId: docNo("TXN"), receiptNo: docNo("RCT"), installmentNo: i + 1, payerRef: "Demo gateway", paidAt, createdAt: paidAt, updatedAt: paidAt });
+      pays.push({ invoice: inv._id, student: studentId, amount, method: pick(["bkash", "bkash", "bkash", "nagad", "rocket", "card", "bank"]), status: "success", txnId: docNo("TXN"), receiptNo: docNo("RCT"), installmentNo: i + 1, payerRef: "Demo gateway", paidAt, createdAt: paidAt, updatedAt: paidAt });
       applyPayment(inv, amount);
     }
     await inv.save();
@@ -330,7 +330,7 @@ async function main() {
     });
     if (paid) {
       const paidAt = new Date(+now - 24 * DAY);
-      await M.Payment.create({ invoice: invoice._id, student: studentId, amount: route.fee, method: "wallet", status: "success", txnId: docNo("TXN"), receiptNo: docNo("RCT"), payerRef: "Demo gateway", paidAt });
+      await M.Payment.create({ invoice: invoice._id, student: studentId, amount: route.fee, method: "bkash", status: "success", txnId: docNo("TXN"), receiptNo: docNo("RCT"), payerRef: "Demo gateway", paidAt });
     }
     await M.TransportPass.create({
       student: studentId, semester: curDoc._id, route: route._id, stop, status: paid ? "active" : "pending", passNo: docNo("BUS"), invoice: invoice._id,

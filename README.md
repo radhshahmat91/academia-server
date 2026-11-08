@@ -142,7 +142,7 @@ Connect to the server root with `auth: { token }`, using the same JWT as REST. E
 
 - **Registration** is validated on the server, not only in the UI: the credit range, prerequisites, courses already passed, weekly schedule clashes, the registration deadline and seat capacity (seats are claimed atomically, so two students cannot take the last one). Once a payment exists the registration is locked.
 - **Fees** are `credits x per-credit rate + registration + library + student activity`. A waiver applies to tuition only. The total is split into three installments (40, 30 and 30 percent) due 1, 5 and 9 weeks after registering. The invoice's due date always points at the next unpaid installment.
-- **Payments** go through a sandbox gateway. The verification code is `123456`. A refund reverses the installments and the invoice balance, and puts an active bus pass back to pending.
+- **Payments** go through a sandbox gateway and can be made with bKash, Nagad, Rocket, a bank card or a bank transfer. The server checks the number for the chosen method (11 digits starting with `01`, or 11 to 12 for Rocket) and the verification code `123456`. Payments saved before the wallets were listed one by one carry the method `wallet` and are shown as "Mobile wallet". A refund reverses the installments and the invoice balance, and puts an active bus pass back to pending.
 - **Grades** use this scale: A+ 4.00 (80 and above), A 3.75, A- 3.50, B+ 3.25, B 3.00, B- 2.75, C+ 2.50, C 2.25, D 2.00 (40 and above), F 0.
 - **Results** of a finished semester stay hidden until the student has submitted every course evaluation. Admins only receive averages and comments. The student is never included in what the evaluations endpoint returns.
 

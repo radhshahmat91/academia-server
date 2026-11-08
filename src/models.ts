@@ -164,7 +164,8 @@ export const Payment = model(
       invoice: ref("Invoice", { required: true }),
       student: { type: String, index: true },
       amount: Number,
-      method: { type: String, enum: ["wallet", "card", "bank"] },
+      // "wallet" is what payments were called before bKash, Nagad and Rocket were listed one by one; older records keep it
+      method: { type: String, enum: ["bkash", "nagad", "rocket", "card", "bank", "wallet"] },
       status: { type: String, enum: ["pending", "success", "failed", "refunded"], default: "pending" },
       txnId: { type: String, unique: true },
       receiptNo: String,

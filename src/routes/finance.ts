@@ -73,8 +73,15 @@ r.post("/payments/checkout", requireAuth, async (req, res) => {
 });
 
 const SANDBOX_CODE = "123456";
+/** A mobile wallet is paid with the phone number of the account. A Rocket number can carry one extra digit. "wallet" is the name used before the wallets were listed one by one. */
+const WALLET_RULES: Record<string, { pattern: RegExp; message: string }> = {
+  bkash: { pattern: /^01\d{9}$/, message: "Enter your 11 digit bKash number that starts with 01" },
+  nagad: { pattern: /^01\d{9}$/, message: "Enter your 11 digit Nagad number that starts with 01" },
+  rocket: { pattern: /^01\d{9,10}$/, message: "Enter your Rocket number: 11 or 12 digits that start with 01" },
+  wallet: { pattern: /^01\d{9}$/, message: "Enter an 11 digit mobile number that starts with 01" },
+};
 const confirmSchema = z.object({
-  method: z.enum(["wallet", "card", "bank"]),
+  method: z.enum(["bkash", "nagad", "rocket", "card", "bank", "wallet"]),
   payerRef: z.string().trim().min(4, "Enter the payment details").max(30),
   code: z.string().trim().length(6, "Enter the 6 digit verification code"),
 });
@@ -82,7 +89,8 @@ const confirmSchema = z.object({
 r.post("/payments/:id/confirm", requireAuth, async (req, res) => {
   const me = req.user!.id;
   const body = parse(confirmSchema, req.body);
-  if (body.method === "wallet" && !/^01\d{9}$/.test(body.payerRef)) throw conflict("Enter an 11 digit mobile number that starts with 01");
+  const wallet = WALLET_RULES[body.method];
+  if (wallet && !wallet.pattern.test(body.payerRef)) throw conflict(wallet.message);
   if (body.method === "card" && !/^\d{4}$/.test(body.payerRef)) throw conflict("Enter the last 4 digits of the card");
   if (body.code !== SANDBOX_CODE) throw conflict(`That verification code is not right. The demo gateway code is ${SANDBOX_CODE}.`);
 
@@ -92,7 +100,7 @@ r.post("/payments/:id/confirm", requireAuth, async (req, res) => {
       $set: {
         status: "success",
         method: body.method,
-        payerRef: body.method === "wallet" ? `${body.payerRef.slice(0, 3)}••••${body.payerRef.slice(-3)}` : body.method === "card" ? `•••• ${body.payerRef}` : body.payerRef,
+        payerRef: wallet ? `${body.payerRef.slice(0, 3)}••••${body.payerRef.slice(-3)}` : body.method === "card" ? `•••• ${body.payerRef}` : body.payerRef,
         paidAt: new Date(),
         receiptNo: docNo("RCT"),
       },
